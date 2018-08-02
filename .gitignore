@@ -74,3 +74,4 @@ nbproject/Makefile-*
 disassembly/
 *.map
 /PIC18F4520SPI.X/nbproject/private/
+/PIC18F4520I2C.X/nbproject/private/
