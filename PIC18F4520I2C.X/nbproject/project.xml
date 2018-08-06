@@ -6,12 +6,12 @@
             <name>PIC18F4520I2C</name>
             <creation-uuid>d7e53a9f-9fca-40e5-9dc5-56bc6c82c13b</creation-uuid>
             <make-project-type>0</make-project-type>
-            <c-extensions/>
+            <c-extensions>c</c-extensions>
             <cpp-extensions/>
             <header-extensions/>
             <asminc-extensions/>
-            <make-dep-projects/>
             <sourceEncoding>ISO-8859-1</sourceEncoding>
+            <make-dep-projects/>
         </data>
     </configuration>
 </project>
