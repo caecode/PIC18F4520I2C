@@ -69,7 +69,7 @@
 
 #include <xc.h>
 
-#define _XTAL_FREQ 8000000
+#define _XTAL_FREQ 4000000
 
 void write(char uControlByte, char uHighAddress, char uLowAddress, char uData);
 char read(char uHighAddress, char uLowAddress);
@@ -85,22 +85,19 @@ void main(void) {
     TRISCbits.RC3=1;   //SCL
     TRISCbits.RC4=1;   //SDA
     
-    SSPSTAT = 0x80;   //Disable SMBus &
-                    //Slew Rate Control
-  SSPCON1 = 0x28;   //Enable MSSP Master
-  SSPADD = 0x18;    //Should be 0x18
-                    //for 100kHz
-  SSPCON2 = 0x00;   //Clear MSSP Conrol Bits
+    SSPSTAT = 0x80;   //Disable SMBus & Slew Rate Control
+    SSPCON1 = 0x28;   //Enable MSSP Master
+    SSPADD = 0x09;    //Should be 0x09 for 100kHz
+    SSPCON2 = 0x00;   //Clear MSSP Conrol Bits
  
-    while(1){
-        write(0xA0, 0x00, 0x00,0x07);
-        
-        __delay_ms(10);
-        
-        LATD=read(0x00,0x00);
-        
-    }
-        
+    //write to I2C.High Address=0x00, Low Address=0x00 . Data=0x07
+    write(0xA0, 0x00, 0x00,0x07);
+
+    //wait some time
+    __delay_ms(10);
+
+    //Read I2C. High Address=0x00, Low Address=0x00
+    LATD=read(0x00,0x00);
     
     while(1);
 
@@ -108,7 +105,9 @@ void main(void) {
 
 void write(char uControlByte, char uHighAddress, char uLowAddress, char uData){
     
-    while ((SSPSTAT & 0x04) || (SSPCON2 & 0x1F)); //Transmit is in progress
+    //Check if I2C is idle
+    while ((SSPSTAT & 0x04) || (SSPCON2 & 0x1F)); 
+    
     //Generate a Start condition by setting the Start Enable bit
     SSPCON2bits.SEN=1;
     
@@ -117,7 +116,7 @@ void write(char uControlByte, char uHighAddress, char uLowAddress, char uData){
     //Send control byte
     SSPBUF=uControlByte;
     
-   transmissionInProgress();
+    transmissionInProgress();
     
     //send High Address
     SSPBUF=uHighAddress;
@@ -129,7 +128,7 @@ void write(char uControlByte, char uHighAddress, char uLowAddress, char uData){
     
    transmissionInProgress();
     
-    //send data
+    //send data to store in EEPROM
     SSPBUF=uData;
     
     transmissionInProgress();
@@ -137,13 +136,13 @@ void write(char uControlByte, char uHighAddress, char uLowAddress, char uData){
     //generate a stop condition
     SSPCON2bits.PEN=1;
     
-
+    while (SSPSTATbits.P);
+    
 }
 
 char read(char uHighAddress, char uLowAddress){
 
     char myData=0x0;
-    
     
     while ((SSPSTAT & 0x04) || (SSPCON2 & 0x1F)); //Transmit is in progress
     //Generate a Start condition by setting the Start Enable bit
@@ -156,54 +155,52 @@ char read(char uHighAddress, char uLowAddress){
     
     transmissionInProgress();
     
+    //Send high address
     SSPBUF=uHighAddress;
     
     transmissionInProgress();
     
+    //Send low address
     SSPBUF=uLowAddress;
     
     transmissionInProgress();
-    //Generate a Start condition by setting the Start Enable bit
+    
+    //Generate a Re-Start condition
     SSPCON2bits.RSEN=1;
     
     while ( SSPCON2bits.RSEN );     // wait until re-start condition is over 
     
     //Send control byte
     SSPBUF=0xA1;
+    
     transmissionInProgress();
+    
+    //To read the data byte, the ACKDT bit is first set to indicate that a NO ACK should be sent.
     SSPCON2bits.ACKDT=1;
+    
+    //Then the RCEN bit is set to initialize the read and the data can be copied from SSPBUF
     SSPCON2bits.RCEN=1;
     
     transmissionInProgress();
     
-    
+    //read data from EEPROM
     myData=SSPBUF;
     
+    //The Master must respond back with a NO ACT bit. To do this, the ACKEN bit is set, sending out the NO ACK bit.
+    //This indicates that no more data will be read
     while ( SSPCON2bits.ACKEN );
-    SSPSTATbits.P=1;
-    while ( SSPCON2bits.PEN );
-    //while(SSPSTATbits.P==0);
     
-    Nop();
-    Nop();
+    //Finally the master generates a STOP condition
+    //SSPSTATbits.P=1;
+    SSPCON2bits.PEN=1;
     
-//    transmissionInProgress();
-//    
-//    //transmissionInProgress();
-//    while(!SSPSTATbits.BF);
-//    
-//    myData=SSPBUF;
-//    
-//    while(SSPCON2bits.ACKDT==1);
-//    
-//    SSPCON2bits.PEN=1;
-    
+    while (SSPSTATbits.P);
+        
     return myData;
 }
 
 void transmissionInProgress(void){
     
-    //Transmit is in progress
     while ((SSPSTAT & 0x04) || (SSPCON2 & 0x1F)); //Transmit is in progress
     
     while(!PIR1bits.SSPIF);
