@@ -85,12 +85,15 @@ void main(void) {
     TRISCbits.RC3=1;   //SCL
     TRISCbits.RC4=1;   //SDA
     
-    SSPADD=(_XTAL_FREQ/(4*100000))-1;;
-    
-    SSPCON1=0x28;
+    SSPSTAT = 0x80;   //Disable SMBus &
+                    //Slew Rate Control
+  SSPCON1 = 0x28;   //Enable MSSP Master
+  SSPADD = 0x18;    //Should be 0x18
+                    //for 100kHz
+  SSPCON2 = 0x00;   //Clear MSSP Conrol Bits
  
     while(1){
-       // write(0xA0, 0x00, 0x00,0x08);
+        write(0xA0, 0x00, 0x00,0x07);
         
         __delay_ms(10);
         
@@ -138,7 +141,7 @@ void write(char uControlByte, char uHighAddress, char uLowAddress, char uData){
 }
 
 char read(char uHighAddress, char uLowAddress){
-    //SSPCON1bits.CKP=0;
+
     char myData=0x0;
     
     
@@ -159,28 +162,41 @@ char read(char uHighAddress, char uLowAddress){
     
     SSPBUF=uLowAddress;
     
-    while ((SSPSTAT & 0x04) || (SSPCON2 & 0x1F)); //Transmit is in progress
-    //Generate a Start condition by setting the Start Enable bit
-    SSPCON2bits.SEN=1;
-    
     transmissionInProgress();
+    //Generate a Start condition by setting the Start Enable bit
+    SSPCON2bits.RSEN=1;
+    
+    while ( SSPCON2bits.RSEN );     // wait until re-start condition is over 
     
     //Send control byte
     SSPBUF=0xA1;
+    transmissionInProgress();
+    SSPCON2bits.ACKDT=1;
+    SSPCON2bits.RCEN=1;
     
     transmissionInProgress();
     
-    //SSPCON2bits.RCEN=1;
-    //SSPCON1bits.CKP=1;
     
-    //transmissionInProgress();
-    //while(!SSPSTATbits.BF);
+    myData=SSPBUF;
     
-    //myData=SSPBUF;
+    while ( SSPCON2bits.ACKEN );
+    SSPSTATbits.P=1;
+    while ( SSPCON2bits.PEN );
+    //while(SSPSTATbits.P==0);
     
-    //transmissionInProgress();
+    Nop();
+    Nop();
     
-    //SSPCON2bits.PEN=1;
+//    transmissionInProgress();
+//    
+//    //transmissionInProgress();
+//    while(!SSPSTATbits.BF);
+//    
+//    myData=SSPBUF;
+//    
+//    while(SSPCON2bits.ACKDT==1);
+//    
+//    SSPCON2bits.PEN=1;
     
     return myData;
 }
