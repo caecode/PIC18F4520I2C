@@ -87,7 +87,7 @@ void main(void) {
     
     SSPSTAT = 0x80;   //Disable SMBus & Slew Rate Control
     SSPCON1 = 0x28;   //Enable MSSP Master
-    SSPADD = 0x09;    //Should be 0x09 for 100kHz
+    SSPADD = 0x19;    //Should be 0x19 for 100kHz
     SSPCON2 = 0x00;   //Clear MSSP Conrol Bits
  
     //write to I2C.High Address=0x00, Low Address=0x00 . Data=0x07
