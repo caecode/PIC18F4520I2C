@@ -186,12 +186,11 @@ char read(char uHighAddress, char uLowAddress){
     //read data from EEPROM
     myData=SSPBUF;
     
-    //The Master must respond back with a NO ACT bit. To do this, the ACKEN bit is set, sending out the NO ACK bit.
-    //This indicates that no more data will be read
+    //The Master must respond back with a NO ACT bit. This indicates that no more data will be read
     while ( SSPCON2bits.ACKEN );
     
     //Finally the master generates a STOP condition
-    //SSPSTATbits.P=1;
+
     SSPCON2bits.PEN=1;
     
     while (SSPSTATbits.P);
